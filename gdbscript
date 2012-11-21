@@ -3,7 +3,7 @@ break startupHpc
 run
 finish
 
-watch ((long long[3])_hpc_tickboxes_Main_hpc)
+watch ((long long[2])_hpc_tickboxes_Main_hpc)
 commands
   print ((long long[20])_hpc_tickboxes_Main_hpc)
   cont
