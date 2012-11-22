@@ -1,9 +1,8 @@
-file ./Main
 break startupHpc
-run
+continue
 finish
 
-watch ((long long[2])_hpc_tickboxes_Main_hpc)
+watch ((long long[20])_hpc_tickboxes_Main_hpc)
 commands
   print ((long long[20])_hpc_tickboxes_Main_hpc)
   cont
