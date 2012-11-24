@@ -1,0 +1,7 @@
+.hpc
+*.hi
+*.o
+Main
+Fireball
+*.tix*
+.*swp
