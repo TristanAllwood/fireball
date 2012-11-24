@@ -33,7 +33,7 @@ go name = do
       , " <html>"
       , "   <head>"
       , "     <meta charset=\"utf8\"/>"
-      , "     <title>Firball " ++ name ++ "</title>"
+      , "     <title>Fireball " ++ name ++ "</title>"
       , "     <link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\"/></link>"
       , "   </head>"
       , "   <body>"
