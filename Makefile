@@ -14,6 +14,7 @@ run: Main
 	./gen.sh
 
 clean:
-	rm -rf .hpc *.tix *.hi *.o *.hfb
+	rm -rf .hpc *.tix *.hi *.o *.hfb *.html
+	rm -f Fireball FireballRender
 
 .phony: clean all
