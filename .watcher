@@ -1,0 +1,3 @@
+*.hs:
+  make
+  echo "built"

@@ -5,3 +5,6 @@ Main
 Fireball
 *.tix*
 .*swp
+FireballRender
+*.hfb
+*.html

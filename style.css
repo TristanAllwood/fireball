@@ -1,0 +1,14 @@
+body {
+  margin:auto;
+  width:800px;
+  border:1px solid red;
+  margin-top:auto;
+}
+
+h1 {
+  text-align:center;
+  background: #FAFFCC;
+  font-family:monospace;
+  margin:0px;
+}
+

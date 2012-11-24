@@ -1,20 +1,23 @@
 module Fireball where
 
+import Control.Applicative
+import Control.Concurrent
+import Control.Concurrent.MVar
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
+import Control.Monad.IO.Class
+import Control.Monad.Trans
+import Control.Monad.Trans.Cont
 import Data.List
 import System.Directory
 import System.Environment
 import System.Exit
 import System.FilePath
-import Control.Concurrent
-import Control.Concurrent.MVar
 import System.IO
 import System.Process
 import Text.Regex.Posix
 import Trace.Hpc.Mix
-
 
 main :: IO ()
 main = do
@@ -25,7 +28,7 @@ main = do
       moduleMixs <- mapM (readMix [".hpc", "."] . Left) modules
       go program (modules `zip` moduleMixs)
     _                   -> do
-      putStrLn "Usage: Fileball <program> <modules...>"
+      putStrLn "Usage: Fireball <program> <modules...>"
       exitWith ExitSuccess
 
 go :: String -> [(String, Mix)] -> IO ()
@@ -71,13 +74,43 @@ go program mixs = do
       tokens <- forM [val_stdout, val_stderr, gdb_stderr]
                      asyncDrainHandle
 
-      {- gdb_stdout -}
-      -- Hardware watchpoint 2: ((long long[20])_hpc_tickboxes_Main_hpc)
-      --
-      -- Old value = {4, 14, 14, 14, 14, 19, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-      -- New value = {4, 15, 15, 15, 15, 19, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+      allTixs <- parseTixs gdb_stdout
 
       forM_ tokens takeMVar
+
+      withFile (program <.> "hfb") WriteMode $ flip hPrint allTixs
+      print allTixs
+
+parseTixs :: Handle -> IO [(String, [(Integer,Integer)])]
+parseTixs hdl = runContT (callCC (go [])) (return . reverse)
+  where
+    go result break = do
+
+      modName <- searchTo (=~ "Hardware watchpoint [0-9]+: \\(\\(long long\\[[0-9]+\\]\\)_hpc_tickboxes_([a-zA-Z0-9_]+)_hpc\\)")
+                          (break result)
+
+      liftIO $ putStrLn modName
+
+      let readAsIntList = read . ("[" ++) . (++ "]")
+      oldValue <- readAsIntList <$> searchTo (=~ "Old value = \\{(.*)\\}")
+                                             (break result)
+      newValue <- readAsIntList <$> searchTo (=~ "New value = \\{(.*)\\}")
+                                             (break result)
+
+      go ((modName, zip oldValue newValue):result) break
+
+    searchTo :: (String -> [[String]])
+                       -> ContT ([(String, [(Integer, Integer)])]) IO () -> ContT ([(String, [(Integer, Integer)])]) IO String
+    searchTo regex escape = do
+      iseof <- liftIO $ hIsEOF hdl
+
+      when iseof escape
+
+      line <- liftIO $ hGetLine hdl
+      liftIO . putStrLn $ "> " ++ line
+      case regex line of
+        [[_, match]] -> return match
+        _         -> searchTo regex escape
 
 asyncDrainHandle :: Handle -> IO (MVar ())
 asyncDrainHandle handle = do

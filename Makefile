@@ -1,4 +1,8 @@
-all:	Fireball Main
+all:	Fireball FireballRender Main
+
+FireballRender: FireballRender.hs
+	ghc -threaded --make -main-is FireballRender FireballRender.hs
+
 
 Fireball: Fireball.hs
 	ghc -threaded --make -main-is Fireball Fireball.hs
@@ -10,6 +14,6 @@ run: Main
 	./gen.sh
 
 clean:
-	rm -rf .hpc Main.tix Main.hi Main.o
+	rm -rf .hpc *.tix *.hi *.o *.hfb
 
 .phony: clean all
