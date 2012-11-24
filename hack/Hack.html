@@ -1,0 +1,582 @@
+ <!DOCTYPE HTML>
+ <html>
+   <head>
+     <meta charset="utf8"/>
+     <title>Fireball Hack</title>
+     <link rel="stylesheet" type="text/css" href="style.css"/></link>
+   </head>
+   <body>
+     <div class="header">
+       <h1>Hack</h1>
+     </div>
+
+<div id="source-tabs"><div id="source-tab-Hack" class="source-tab">
+Hack
+</div>
+
+<div id="source-tab-MineSearch" class="source-tab">
+MineSearch
+</div>
+
+<div id="source-tab-Parser" class="source-tab">
+Parser
+</div>
+
+<div id="source-tab-StrategyDSL" class="source-tab">
+StrategyDSL
+</div>
+
+<div id="source-tab-Types" class="source-tab">
+Types
+</div>
+
+</div><div id="source-Hack" class="source">
+module Hack where
+
+import qualified Strategy.Greedy
+
+import Data.Array.Storable
+import Data.Functor
+import System.IO
+import System.Exit
+
+import Move
+import Parser
+import Update
+import Types
+
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Hack-49">main = <span class="source-pos source-pos-type-exp" id="source-pos-Hack-48">runWith <span class="source-pos source-pos-type-exp" id="source-pos-Hack-47">Strategy.Greedy.strategy</span></span></span>
+
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Hack-46">runWith strategy = <span class="source-pos source-pos-type-exp" id="source-pos-Hack-45">do
+  mp <- <span class="source-pos source-pos-type-exp" id="source-pos-Hack-33">readFile <span class="source-pos source-pos-type-exp" id="source-pos-Hack-32">"../maps/contest1.map"</span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-Hack-39">mapM_ <span class="source-pos source-pos-type-exp" id="source-pos-Hack-36">(flip <span class="source-pos source-pos-type-exp" id="source-pos-Hack-34">hSetBuffering</span> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-35">NoBuffering</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-38">[<span class="source-pos source-pos-type-exp" id="source-pos-Hack-37">stdout</span>]</span></span>
+  mine <- <span class="source-pos source-pos-type-exp" id="source-pos-Hack-41">parseMine <span class="source-pos source-pos-type-exp" id="source-pos-Hack-40">mp</span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-Hack-44">loop <span class="source-pos source-pos-type-exp" id="source-pos-Hack-42">strategy</span> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-43">mine</span></span></span></span>
+
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Hack-31">loop strategy mine = <span class="source-pos source-pos-type-exp" id="source-pos-Hack-30">do
+  (move, strategy') <- <span class="source-pos source-pos-type-exp" id="source-pos-Hack-2">nextMove <span class="source-pos source-pos-type-exp" id="source-pos-Hack-0">strategy</span> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-1">mine</span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-Hack-3"><span class="source-pos source-pos-type-exp" id="source-pos-Hack-5"><span class="source-pos source-pos-type-exp" id="source-pos-Hack-7">putStr</span> . <span class="source-pos source-pos-type-exp" id="source-pos-Hack-4">show</span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-Hack-6">move</span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-Hack-9">hFlush <span class="source-pos source-pos-type-exp" id="source-pos-Hack-8">stdout</span></span>
+  mr <- <span class="source-pos source-pos-type-exp" id="source-pos-Hack-12">moveRobot <span class="source-pos source-pos-type-exp" id="source-pos-Hack-10">mine</span> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-11">move</span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-Hack-20">case <span class="source-pos source-pos-type-exp" id="source-pos-Hack-13">mr</span> of
+    AbortMine -> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-15">exitWith <span class="source-pos source-pos-type-exp" id="source-pos-Hack-14">ExitSuccess</span></span>
+    CompletedMine -> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-17">exitWith <span class="source-pos source-pos-type-exp" id="source-pos-Hack-16">ExitSuccess</span></span>
+    _ ->  <span class="source-pos source-pos-type-exp" id="source-pos-Hack-19">return <span class="source-pos source-pos-type-exp" id="source-pos-Hack-18">()</span></span></span>
+  (result, mine') <- <span class="source-pos source-pos-type-exp" id="source-pos-Hack-22">updateMine <span class="source-pos source-pos-type-exp" id="source-pos-Hack-21">mine</span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-Hack-29">case <span class="source-pos source-pos-type-exp" id="source-pos-Hack-23">result</span> of
+    Continue -> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-26">loop <span class="source-pos source-pos-type-exp" id="source-pos-Hack-24">strategy'</span> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-25">mine'</span></span>
+    End r -> <span class="source-pos source-pos-type-exp" id="source-pos-Hack-28">exitWith <span class="source-pos source-pos-type-exp" id="source-pos-Hack-27">ExitSuccess</span></span></span></span></span>
+</div>
+<div id="source-MineSearch" class="source">
+{-# LANGUAGE TupleSections #-}
+module MineSearch(nearestLambda) where
+
+import Types
+
+import Control.Applicative
+import Control.Monad
+import Data.Array.Storable
+import Data.List
+import Data.Maybe
+import Data.Ord
+import Foreign.C
+import Foreign.Marshal
+import Foreign.Ptr
+import Foreign.Storable
+
+foreign import ccall "prim_mine_search.h generate_heatmap"
+  cGenerateHeatmap :: Ptr Mine -> Ptr CInt -> Ptr CInt -> CInt ->
+                      Ptr MinePosition -> IO CInt
+
+nearestLambda :: Mine -> Int -> IO (Maybe [Move])
+<span class="source-pos source-pos-type-toplevel" id="source-pos-MineSearch-268">nearestLambda mine limit = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-267">do
+  bounds@(n `By` m) <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-174">getMineBounds <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-173">mine</span></span>
+  robotPosition <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-176">getMineRobotPosition <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-175">mine</span></span>
+
+  mData <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-178"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-243">withMine <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-177">mine</span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-242">\minePtr -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-241">do
+    let <span class="source-pos source-pos-type-local" id="source-pos-MineSearch-184">numElems = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-180"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-183">fstMB <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-179">bounds</span></span> * <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-182">sndMB <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-181">bounds</span></span></span></span>
+
+    <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-185"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-240">alloca</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-239">\foundPtr -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-238">do
+      heatMap0 <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-193">newArray_ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-192">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-186"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-188">1</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-187">1</span></span>, <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-189"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-191">n</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-190">m</span></span>)</span></span>
+      heatMap1 <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-201">newArray_ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-200">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-194"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-196">1</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-195">1</span></span>, <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-197"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-199">n</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-198">m</span></span>)</span></span>
+
+      result <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-219">do
+        <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-203"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-218">withStorableArray <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-202">heatMap0</span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-217">\heatMap0Ptr -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-216">do
+          <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-205"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-215">withStorableArray <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-204">heatMap1</span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-214">\heatMap1Ptr -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-213">do
+            <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-212">cGenerateHeatmap <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-206">minePtr</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-207">heatMap0Ptr</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-208">heatMap1Ptr</span>
+                             <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-210">(fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-209">limit</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-211">foundPtr</span></span></span></span></span></span></span></span></span>
+
+      <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-237">case <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-220">result</span> of
+        0   -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-221"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-224"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-227">Just</span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-223">(,<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-222">heatMap0</span>)</span></span> <$> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-226">peek <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-225">foundPtr</span></span></span>
+        1   -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-228"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-231"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-234">Just</span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-230">(,<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-229">heatMap1</span>)</span></span> <$> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-233">peek <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-232">foundPtr</span></span></span>
+        -1  -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-236">return <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-235">Nothing</span></span></span></span></span></span></span></span></span>
+
+  targetLocations <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-245">getMineTargetLocations <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-244">mine</span></span>
+  trampolineLocations <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-247">getMineTrampolineLocations <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-246">mine</span></span>
+  trampolineMap <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-249">getMineTrampolineMap <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-248">mine</span></span>
+
+  <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-266">maybe <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-251">(return <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-250">Nothing</span>)</span>
+        <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-264">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-253">fmap <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-252">Just</span></span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-263">uncurry <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-262">(\cp hm -> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-261">traceBack <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-254">bounds</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-255">robotPosition</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-256">cp</span>
+                                          <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-257">targetLocations</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-258">trampolineLocations</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-259">trampolineMap</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-260">hm</span></span>)</span></span>)</span>
+        <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-265">mData</span></span></span>
+    where
+      traceBack :: MineBounds -> MinePosition -> MinePosition ->
+                   [(Int, MinePosition)] -> [(Char, MinePosition)] -> [(Char, Int)] ->
+                   StorableArray MinePosition CInt -> IO [Move]
+      <span class="source-pos source-pos-type-local" id="source-pos-MineSearch-172">traceBack (n `By` m) startLocation currentPosition
+                targetLocations trampolineLocations trampolineMap
+                heatMap
+          | <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-0"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-2"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-3"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-4">currentPosition</span> == <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-1">startLocation</span></span></span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-6">return <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-5">[]</span></span>
+          | Just (i, _) <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-12">find <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-10">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-8">(== <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-7">currentPosition</span>)</span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-9">snd</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-11">targetLocations</span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-64">do
+              let <span class="source-pos source-pos-type-local" id="source-pos-MineSearch-23">possibleTrampolines
+                    = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-14"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-20"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-22">map <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-13">fst</span></span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-19">filter <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-18">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-16">(== <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-15">i</span>)</span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-17">snd</span>)</span></span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-21">trampolineMap</span></span></span>
+
+              let <span class="source-pos source-pos-type-local" id="source-pos-MineSearch-32">possibleTrampolineLocations = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-31">[ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-30">fromMaybe <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-26">(error <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-25">"Something awry in MineSearch"</span>)</span>
+                                                            <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-29">(lookup <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-27">c</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-28">trampolineLocations</span>)</span></span>
+                                                | c <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-24">possibleTrampolines</span> ]</span></span>
+
+              let <span class="source-pos source-pos-type-local" id="source-pos-MineSearch-42">grab p = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-41">do
+                                v <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-35">readArray <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-33">heatMap</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-34">p</span></span>
+                                <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-36"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-40">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-39">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-37">p</span>, <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-38">v</span>)</span></span></span></span>
+
+              locs <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-45">forM <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-43">possibleTrampolineLocations</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-44">grab</span></span>
+              let <span class="source-pos source-pos-type-local" id="source-pos-MineSearch-53">next = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-46"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-50"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-52">fst</span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-49">minimumBy <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-48">(comparing <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-47">snd</span>)</span></span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-51">locs</span></span></span>
+
+              <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-63">traceBack <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-56">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-54">n</span> `By` <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-55">m</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-57">startLocation</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-58">next</span>
+                        <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-59">targetLocations</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-60">trampolineLocations</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-61">trampolineMap</span>
+                        <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-62">heatMap</span></span></span>
+
+          | <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-65"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-66"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-67">otherwise</span></span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-171">do
+              let (x :*: y) = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-68">currentPosition</span>
+
+              let <span class="source-pos source-pos-type-local" id="source-pos-MineSearch-85">grab x y mv = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-84">do
+                                v <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-73">readArray <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-69">heatMap</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-72">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-70">x</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-71">y</span>)</span></span>
+                                <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-74"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-83">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-82">Just <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-81">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-79">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-75">mv</span>, <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-76"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-78">x</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-77">y</span></span>)</span>, <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-80">v</span>)</span></span></span></span></span>
+              r <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-99">if <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-86"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-88"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-89"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-90">x</span> > <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-87">1</span></span></span></span> then <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-96">grab <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-93">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-91">x</span>-<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-92">1</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-94">y</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-95">R</span></span> else <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-98">return <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-97">Nothing</span></span></span>
+              l <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-113">if <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-100"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-102"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-103"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-104">x</span> < <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-101">n</span></span></span></span> then <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-110">grab <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-107">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-105">x</span>+<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-106">1</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-108">y</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-109">L</span></span> else <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-112">return <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-111">Nothing</span></span></span>
+              u <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-127">if <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-114"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-116"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-117"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-118">y</span> > <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-115">1</span></span></span></span> then <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-124">grab <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-119">x</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-122">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-120">y</span>-<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-121">1</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-123">U</span></span> else <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-126">return <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-125">Nothing</span></span></span>
+              d <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-141">if <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-128"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-130"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-131"><span class="source-pos source-pos-type-bin" id="source-pos-MineSearch-132">y</span> < <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-129">m</span></span></span></span> then <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-138">grab <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-133">x</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-136">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-134">y</span>+<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-135">1</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-137">D</span></span> else <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-140">return <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-139">Nothing</span></span></span>
+
+              let (move, next) = <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-142"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-148"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-154">fst</span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-145"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-147">minimumBy <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-144">(comparing <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-143">snd</span>)</span></span> . <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-146">catMaybes</span></span></span> $
+                                  <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-153">[<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-149">d</span>,<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-150">u</span>,<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-151">r</span>,<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-152">l</span>]</span></span>
+
+              rest <- <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-164">traceBack <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-157">(<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-155">n</span> `By` <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-156">m</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-158">startLocation</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-159">next</span>
+                                <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-160">targetLocations</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-161">trampolineLocations</span> <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-162">trampolineMap</span>
+                                <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-163">heatMap</span></span>
+              <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-165"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-170">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-166"><span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-169">rest</span> ++ <span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-168">[<span class="source-pos source-pos-type-exp" id="source-pos-MineSearch-167">move</span>]</span></span></span></span></span></span>
+</div>
+<div id="source-Parser" class="source">
+module Parser (parseMine) where
+
+import Control.Monad
+import Data.Array.Storable
+import Data.List
+import Data.Maybe
+
+import Types
+
+parseMine :: String -> IO Mine
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Parser-166">parseMine s
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-165">newMine <span class="source-pos source-pos-type-exp" id="source-pos-Parser-154">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-152">n</span> `By` <span class="source-pos source-pos-type-exp" id="source-pos-Parser-153">m</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-155">pos</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-156">lambdas</span>
+            <span class="source-pos source-pos-type-exp" id="source-pos-Parser-157">flooded</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-158">waterLevel</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-159">floodRate</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-160">waterproofing</span>
+            <span class="source-pos source-pos-type-exp" id="source-pos-Parser-161">trampolineMap</span>
+            <span class="source-pos source-pos-type-exp" id="source-pos-Parser-162">growth</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-163">razors</span>
+            <span class="source-pos source-pos-type-exp" id="source-pos-Parser-164">cs</span></span>
+
+    where
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-69">rows                = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-64"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-66"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-68">map <span class="source-pos source-pos-type-exp" id="source-pos-Parser-63">(filter <span class="source-pos source-pos-type-exp" id="source-pos-Parser-62">(/= <span class="source-pos source-pos-type-exp" id="source-pos-Parser-61">'\r'</span>)</span>)</span></span> . <span class="source-pos source-pos-type-exp" id="source-pos-Parser-65">lines</span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-Parser-67">s</span></span></span>
+      (mine, meta)        = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-72">break <span class="source-pos source-pos-type-exp" id="source-pos-Parser-70">null</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-71">rows</span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-77">n                   = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-76">maximum <span class="source-pos source-pos-type-exp" id="source-pos-Parser-75">(map <span class="source-pos source-pos-type-exp" id="source-pos-Parser-73">length</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-74">mine</span>)</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-80">m                   = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-79">length <span class="source-pos source-pos-type-exp" id="source-pos-Parser-78">mine</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-60">one                 = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-57"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-59">1</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-Parser-58">1</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-87">ps                  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-86">range <span class="source-pos source-pos-type-exp" id="source-pos-Parser-85">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-81">one</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-82"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-84">n</span> :*: <span class="source-pos source-pos-type-exp" id="source-pos-Parser-83">m</span></span>)</span></span></span>
+      (pos, lambdas, cs)  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-93"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-101">foldr <span class="source-pos source-pos-type-exp" id="source-pos-Parser-88">scanRobotLambdas</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-92">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-89">one</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-90">0</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-91">[]</span>)</span></span> $
+                              <span class="source-pos source-pos-type-exp" id="source-pos-Parser-100">zip <span class="source-pos source-pos-type-exp" id="source-pos-Parser-94">ps</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-99">(concatMap <span class="source-pos source-pos-type-exp" id="source-pos-Parser-96">(normalise <span class="source-pos source-pos-type-exp" id="source-pos-Parser-95">n</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-98">(reverse <span class="source-pos source-pos-type-exp" id="source-pos-Parser-97">mine</span>)</span>)</span></span></span>
+
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-109">metaTable           = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-108">concatMap <span class="source-pos source-pos-type-exp" id="source-pos-Parser-104">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-102">pairList</span> . <span class="source-pos source-pos-type-exp" id="source-pos-Parser-103">words</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-107">(drop <span class="source-pos source-pos-type-exp" id="source-pos-Parser-105">1</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-106">meta</span>)</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-113">flooded             = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-112">not <span class="source-pos source-pos-type-exp" id="source-pos-Parser-111">(null <span class="source-pos source-pos-type-exp" id="source-pos-Parser-110">metaTable</span>)</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-119">waterLevel          = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-118">fromMaybe <span class="source-pos source-pos-type-exp" id="source-pos-Parser-114">0</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-117">(lookup <span class="source-pos source-pos-type-exp" id="source-pos-Parser-115">"Water"</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-116">metaTable</span>)</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-125">floodRate           = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-124">fromMaybe <span class="source-pos source-pos-type-exp" id="source-pos-Parser-120">0</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-123">(lookup <span class="source-pos source-pos-type-exp" id="source-pos-Parser-121">"Flooding"</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-122">metaTable</span>)</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-131">waterproofing       = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-130">fromMaybe <span class="source-pos source-pos-type-exp" id="source-pos-Parser-126">10</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-129">(lookup <span class="source-pos source-pos-type-exp" id="source-pos-Parser-127">"Waterproof"</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-128">metaTable</span>)</span></span></span>
+
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-151">trampolineMap       = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-150">concatMap <span class="source-pos source-pos-type-exp" id="source-pos-Parser-146">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-144">parseTrampoline</span> . <span class="source-pos source-pos-type-exp" id="source-pos-Parser-145">words</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-149">(drop <span class="source-pos source-pos-type-exp" id="source-pos-Parser-147">1</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-148">meta</span>)</span></span></span>
+
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-137">growth              = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-136">fromMaybe <span class="source-pos source-pos-type-exp" id="source-pos-Parser-132">25</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-135">(lookup <span class="source-pos source-pos-type-exp" id="source-pos-Parser-133">"Growth"</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-134">metaTable</span>)</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-Parser-143">razors              = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-142">fromMaybe <span class="source-pos source-pos-type-exp" id="source-pos-Parser-138">0</span>  <span class="source-pos source-pos-type-exp" id="source-pos-Parser-141">(lookup <span class="source-pos source-pos-type-exp" id="source-pos-Parser-139">"Razors"</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-140">metaTable</span>)</span></span></span></span>
+
+
+parseTrampoline :: [String] -> [(Char, Int)]
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Parser-56">parseTrampoline ["Trampoline", letter, "targets", number]
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-54">[<span class="source-pos source-pos-type-exp" id="source-pos-Parser-53">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-50">head <span class="source-pos source-pos-type-exp" id="source-pos-Parser-49">letter</span></span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-52">read <span class="source-pos source-pos-type-exp" id="source-pos-Parser-51">number</span></span>)</span>]</span>
+parseTrampoline _ = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-55">[]</span></span>
+
+pairList :: [String] -> [(String, Int)]
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Parser-48">pairList [x, y]
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-46">[<span class="source-pos source-pos-type-exp" id="source-pos-Parser-45">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-42">x</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-44">read <span class="source-pos source-pos-type-exp" id="source-pos-Parser-43">y</span></span>)</span>]</span>
+
+pairList _
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-47">[]</span></span>
+
+scanRobotLambdas  :: (MinePosition, Char)
+                  -> (MinePosition, Int, [Cell])
+                  -> (MinePosition, Int, [Cell])
+
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Parser-41">scanRobotLambdas (pos, 'R') (_, lambdas, cs)
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-25">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-20">pos</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-21">lambdas</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-22"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-24">Robot</span> : <span class="source-pos source-pos-type-exp" id="source-pos-Parser-23">cs</span></span>)</span>
+
+scanRobotLambdas (_, '\\') (pos, lambdas, cs)
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-33">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-26">pos</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-27"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-29">lambdas</span> + <span class="source-pos source-pos-type-exp" id="source-pos-Parser-28">1</span></span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-30"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-32">Λ</span> : <span class="source-pos source-pos-type-exp" id="source-pos-Parser-31">cs</span></span>)</span>
+
+scanRobotLambdas (_, c) (pos, lambdas, cs)
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-40">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-34">pos</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-35">lambdas</span>, <span class="source-pos source-pos-type-exp" id="source-pos-Parser-37"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-39">readCell <span class="source-pos source-pos-type-exp" id="source-pos-Parser-36">c</span></span> : <span class="source-pos source-pos-type-exp" id="source-pos-Parser-38">cs</span></span>)</span></span>
+
+normalise :: Int -> String -> String
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Parser-19">normalise n xs
+  | <span class="source-pos source-pos-type-exp" id="source-pos-Parser-3"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-5"><span class="source-pos source-pos-type-bin" id="source-pos-Parser-6"><span class="source-pos source-pos-type-bin" id="source-pos-Parser-7">l</span> < <span class="source-pos source-pos-type-exp" id="source-pos-Parser-4">n</span></span></span></span>     = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-8"><span class="source-pos source-pos-type-exp" id="source-pos-Parser-14">xs</span> ++ <span class="source-pos source-pos-type-exp" id="source-pos-Parser-13">replicate <span class="source-pos source-pos-type-exp" id="source-pos-Parser-11">(<span class="source-pos source-pos-type-exp" id="source-pos-Parser-9">n</span> - <span class="source-pos source-pos-type-exp" id="source-pos-Parser-10">l</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-Parser-12">' '</span></span></span>
+  | <span class="source-pos source-pos-type-exp" id="source-pos-Parser-15"><span class="source-pos source-pos-type-bin" id="source-pos-Parser-16"><span class="source-pos source-pos-type-bin" id="source-pos-Parser-17">otherwise</span></span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-18">xs</span>
+  where
+    <span class="source-pos source-pos-type-local" id="source-pos-Parser-2">l = <span class="source-pos source-pos-type-exp" id="source-pos-Parser-1">length <span class="source-pos source-pos-type-exp" id="source-pos-Parser-0">xs</span></span></span></span>
+</div>
+<div id="source-StrategyDSL" class="source">
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+module StrategyDSL where
+
+import Move
+import Types
+import Update
+import Control.Monad
+import Control.Monad.Trans
+import Control.Applicative
+import Data.Array
+import Data.IORef
+import Data.List
+import Data.Maybe
+import System.Exit
+import System.IO
+
+newtype StrategyM a
+  = StrategyM { runStrategyM_ :: Mine -> IO (Either a (Move, StrategyM a)) }
+
+instance Monad StrategyM where
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-499">return = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-492"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-498">StrategyM</span> . <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-493"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-497">const</span> . <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-494"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-496">return</span> . <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-495">Left</span></span></span></span></span>
+
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-491">(StrategyM s) >>= f = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-471"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-490">StrategyM</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-489">\mine -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-488">do
+                          r <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-473">s <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-472">mine</span></span>
+                          <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-487">case <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-474">r</span> of
+                            Left a        -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-478">runStrategyM_ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-476">(f <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-475">a</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-477">mine</span></span>
+                            Right (m, s') -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-479"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-486">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-485">Right <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-484">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-480">m</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-481"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-483">s'</span> >>= <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-482">f</span></span>)</span></span></span></span></span></span></span></span>
+
+instance MonadIO StrategyM where
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-470">liftIO io = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-464"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-469">StrategyM</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-468">\_ -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-465"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-467">Left</span> <$> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-466">io</span></span></span></span></span>
+
+compile :: StrategyM (forall a . a) -> Strategy
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-463">compile stratm
+  = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-462">Strategy { nextMove = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-461">\mine -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-460">do
+                r <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-451">runStrategyM_ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-449">stratm</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-450">mine</span></span>
+                <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-459">case <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-452">r</span> of
+                  Left (a :: forall a . a) -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-453">a</span>
+                  Right (m, s') -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-458">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-457">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-454">m</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-456">compile <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-455">s'</span></span>)</span></span></span></span></span> }</span></span>
+
+getCell :: Int -> Int -> StrategyM Cell
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-448">getCell x y = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-447">undefined</span></span>
+
+getRobotLocation :: StrategyM (Int, Int)
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-446">getRobotLocation = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-445">undefined</span></span>
+
+getLiftLocations :: StrategyM [(Int, Int)]
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-444">getLiftLocations = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-443">undefined</span></span>
+
+getMine :: StrategyM Mine
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-67">getMine = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-66">StrategyM <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-65">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-63">return</span> . <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-64">Left</span>)</span></span></span>
+
+move :: Move -> StrategyM ()
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-62">move m = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-52"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-61">StrategyM</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-53"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-60">const</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-59">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-58">(Right <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-57">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-54">m</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-56">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-55">()</span></span>)</span>)</span></span></span></span></span>
+
+data HypResult = HypResult { hypScore :: Int
+                           , hypMoves :: [Move]
+                           , hypMine  :: Mine
+                           }
+
+hypothetically :: Strategy -> Int -> StrategyM HypResult
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-142">hypothetically strat numMoves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-141">do
+  origMine <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-111">getMine</span>
+  let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-116">initialHyp = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-115">HypResult <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-112">0</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-113">[]</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-114">undefined</span></span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-117"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-140">liftIO</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-139">do
+    mine           <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-119">copyMine <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-118">origMine</span></span>
+    (hyp, newMine) <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-124">loop <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-120">numMoves</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-121">initialHyp</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-122">mine</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-123">strat</span></span>
+    numRazors <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-126">getMineRazorApplications <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-125">newMine</span></span>
+    <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-127"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-138">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-128"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-137">hyp</span> { hypMoves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-131">reverse <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-130">(hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-129">hyp</span>)</span></span>
+                 , hypMine = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-132">newMine</span>
+                 , hypScore = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-134"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-136">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-133">hyp</span></span> + <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-135">numRazors</span></span> }</span></span></span></span>
+
+  </span>where
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-110">loop 0 hyp mine _ = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-71">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-70">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-68">hyp</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-69">mine</span>)</span></span>
+    loop numMoves hyp mine strat = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-109">do
+      (move, newStrat) <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-74">nextMove <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-72">strat</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-73">mine</span></span>
+      mr <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-77">moveRobot <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-75">mine</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-76">move</span></span>
+      (ur,newMine) <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-79">updateMine <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-78">mine</span></span>
+      numLambdas <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-81">getMineTotalLambdas <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-80">newMine</span></span>
+
+      let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-86">ds     = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-85">dScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-82">numLambdas</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-83">mr</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-84">ur</span></span></span>
+          <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-101">newhyp = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-87"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-100">hyp</span> { hypMoves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-88"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-91">move</span> : <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-90">hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-89">hyp</span></span></span>
+                       , hypScore = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-93"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-95"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-99">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-92">hyp</span></span> + <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-94">ds</span></span> + <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-98">calculatePenalty <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-96">ur</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-97">mr</span></span></span> }</span></span>
+      <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-108">loop <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-104">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-102">numMoves</span> - <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-103">1</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-105">newhyp</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-106">newMine</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-107">newStrat</span></span></span></span></span>
+
+calculatePenalty :: Result -> MoveResult -> Int
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-51">calculatePenalty r mr = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-47"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-50">calcPR <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-46">r</span></span> + <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-49">calcPMR <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-48">mr</span></span></span>
+  where
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-45">calcPR (End Lose)  = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-43">-<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-42">1000</span></span>
+    calcPR _ = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-44">0</span></span>
+
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-41">calcPMR AbortMine = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-36">-<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-35">250</span></span>
+    calcPMR CompletedMine = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-37">10000</span>
+    calcPMR InvalidMove = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-39">-<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-38">10000</span></span>
+    calcPMR _ = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-40">0</span></span></span>
+
+hypothetically' :: StrategyM () -> StrategyM HypResult
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-244">hypothetically' stratm = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-243">do
+  origMine <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-214">getMine</span>
+  let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-219">initialHyp = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-218">HypResult <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-215">0</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-216">[]</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-217">undefined</span></span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-220"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-242">liftIO</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-241">do
+    mine <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-222">copyMine <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-221">origMine</span></span>
+    (hyp, newMine) <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-226">loop <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-223">stratm</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-224">mine</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-225">initialHyp</span></span>
+    numRazors <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-228">getMineRazorApplications <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-227">newMine</span></span>
+    <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-229"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-240">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-230"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-239">hyp</span> { hypMoves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-233">reverse <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-232">(hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-231">hyp</span>)</span></span>
+                 , hypMine  = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-234">newMine</span>
+                 , hypScore = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-236"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-238">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-235">hyp</span></span> + <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-237">numRazors</span></span> }</span></span></span></span>
+
+  </span>where
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-213">loop stratm mine hyp = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-212">do
+      r <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-173">runStrategyM_ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-171">stratm</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-172">mine</span></span>
+      <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-211">case <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-174">r</span> of
+        Left () -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-178">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-177">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-175">hyp</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-176">mine</span>)</span></span>
+        Right (move, newStrat) -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-210">do
+          mr <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-181">moveRobot <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-179">mine</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-180">move</span></span>
+          (ur, newMine) <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-183">updateMine <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-182">mine</span></span>
+          numLambdas <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-185">getMineTotalLambdas <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-184">newMine</span></span>
+
+          let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-190">ds        = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-189">dScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-186">numLambdas</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-187">mr</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-188">ur</span></span></span>
+              <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-205">newhyp = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-191"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-204">hyp</span> { hypMoves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-192"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-195">move</span> : <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-194">hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-193">hyp</span></span></span>
+                           , hypScore = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-197"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-199"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-203">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-196">hyp</span></span> + <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-198">ds</span></span> + <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-202">calculatePenalty <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-200">ur</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-201">mr</span></span></span>}</span></span>
+          <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-209">loop <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-206">newStrat</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-207">newMine</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-208">newhyp</span></span></span></span></span></span></span>
+
+doN :: Int -> StrategyM (forall a. a) -> StrategyM ()
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-34">doN 0 _ = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-14">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-13">()</span></span>
+doN n stratm = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-33">StrategyM { runStrategyM_ = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-32">\mine -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-31">do
+                r <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-17">runStrategyM_ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-15">stratm</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-16">mine</span></span>
+                <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-30">case <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-18">r</span> of
+                  Left (a :: forall a . a) -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-19">a</span>
+                  Right (m, s') -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-20"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-29">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-28">Right <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-27">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-21">m</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-26">doN <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-24">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-22">n</span> - <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-23">1</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-25">s'</span></span>)</span></span></span></span></span></span> }</span></span>
+
+validMoves :: StrategyM [Move]
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-442">validMoves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-441">do
+  origMine <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-366">getMine</span>
+  neigh <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-367"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-370">liftIO</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-369">getMineRobotNeighbourhood <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-368">origMine</span></span></span>
+  ra    <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-371"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-374">liftIO</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-373">getMineRazorApplications <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-372">origMine</span></span></span>
+
+  let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-380">moves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-379">[<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-375">L</span>,<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-376">R</span>,<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-377">U</span>,<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-378">D</span>]</span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-385">neighVals = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-384">map <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-382">(getNeighbour <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-381">neigh</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-383">moves</span></span></span>
+
+  let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-390">checks = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-389">zipWith <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-386">checkDirection</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-387">moves</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-388">neighVals</span></span></span>
+  validDirectionalMoves <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-391"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-397">liftIO</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-396">zipWithM <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-393">(checkMove <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-392">origMine</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-394">checks</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-395">moves</span></span></span>
+
+  let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-432">wadlersBeardMove
+        | <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-416"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-419"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-423"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-424"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-425">WadlersBeard</span> `elem` <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-418">elems <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-417">neigh</span></span></span> && <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-420"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-422">ra</span> > <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-421">0</span></span></span></span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-427">[<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-426">S</span>]</span>
+        | <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-428"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-429"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-430">otherwise</span></span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-431">[]</span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-415">potentialMoves
+        | <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-400"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-402"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-403"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-404">getNeighbour <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-398">neigh</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-399">U</span></span> == <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-401">Rock</span></span></span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-406"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-409">catMaybes <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-405">validDirectionalMoves</span></span> \\ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-408">[<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-407">D</span>]</span></span>
+        | <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-410"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-411"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-412">otherwise</span></span></span> = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-414">catMaybes <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-413">validDirectionalMoves</span></span></span>
+      <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-438">finalMoves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-433"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-437">W</span>:<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-434"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-436">wadlersBeardMove</span> ++ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-435">potentialMoves</span></span></span></span>
+
+  <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-440">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-439">finalMoves</span></span>
+
+  </span>where
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-365">getNeighbour mineNeigh L = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-343"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-348">mineNeigh</span> ! <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-347">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-345">-<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-344">1</span></span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-346">0</span>)</span></span>
+    getNeighbour mineNeigh R = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-349"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-353">mineNeigh</span> ! <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-352">( <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-350">1</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-351">0</span>)</span></span>
+    getNeighbour mineNeigh U = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-354"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-358">mineNeigh</span> ! <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-357">( <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-355">0</span>, <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-356">1</span>)</span></span>
+    getNeighbour mineNeigh D = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-359"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-364">mineNeigh</span> ! <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-363">( <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-360">0</span>,<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-362">-<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-361">1</span></span>)</span></span></span>
+
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-342">checkDirection d cell =
+      <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-341">let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-313">rockCheck = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-312">case <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-305">d</span> of
+                        L -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-306">Nothing</span>
+                        R -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-307">Nothing</span>
+                        U -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-309">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-308">False</span></span>
+                        D -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-311">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-310">False</span></span></span></span>
+      in case <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-314">cell</span> of
+          Robot -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-316">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-315">False</span></span>
+          Rock  -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-317">rockCheck</span>
+          Lift ls -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-321">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-320">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-318">ls</span> == <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-319">Open</span>)</span></span>
+          Earth -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-323">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-322">True</span></span>
+          Wall  -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-325">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-324">False</span></span>
+          Λ     -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-327">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-326">True</span></span>
+          Empty -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-329">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-328">True</span></span>
+          Trampoline _ -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-331">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-330">True</span></span>
+          Target _ -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-333">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-332">False</span></span>
+          WadlersBeard -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-335">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-334">False</span></span>
+          HuttonsRazor -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-337">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-336">True</span></span>
+          HigherOrderRock -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-338">rockCheck</span>
+          Empty -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-340">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-339">True</span></span></span></span>
+
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-304">checkMove _ (Just True) move = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-287">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-286">(Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-285">move</span>)</span></span>
+    checkMove _ (Just False) _ = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-289">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-288">Nothing</span></span>
+    checkMove origMine Nothing move = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-303">do
+      mine <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-291">copyMine <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-290">origMine</span></span>
+      mr <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-294">moveRobot <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-292">mine</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-293">move</span></span>
+      <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-302">case <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-295">mr</span> of
+        InvalidMove -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-297">return <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-296">Nothing</span></span>
+        _ -> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-298"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-301">return</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-300">Just <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-299">move</span></span></span></span></span></span></span>
+
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-170">chooseBestBounded numTurns numMoves s1 s2 = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-143"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-169">forever</span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-168">do
+  hr1 <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-146">hypothetically <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-144">s1</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-145">numTurns</span></span>
+  hr2 <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-149">hypothetically <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-147">s2</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-148">numTurns</span></span>
+  let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-162">moves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-161">if <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-154"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-155"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-156">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-151">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-150">hr1</span></span> > <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-153">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-152">hr2</span></span>)</span></span></span> then <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-158">hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-157">hr1</span></span> else <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-160">hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-159">hr2</span></span></span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-167">mapM_ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-163">move</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-166">(take <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-164">numMoves</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-165">moves</span>)</span></span></span></span></span>
+
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-284">chooseBest s1 s2 = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-283">do
+  hr1 <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-246">hypothetically' <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-245">s1</span></span>
+  hr2 <- <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-253">hypothetically  <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-247">s2</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-252">(max <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-250">(length <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-249">(hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-248">hr1</span>)</span>)</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-251">5</span>)</span></span>
+  let <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-266">moves = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-265">if <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-258"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-259"><span class="source-pos source-pos-type-bin" id="source-pos-StrategyDSL-260">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-255">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-254">hr1</span></span> > <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-257">hypScore <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-256">hr2</span></span>)</span></span></span> then <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-262">hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-261">hr1</span></span> else <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-264">hypMoves <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-263">hr2</span></span></span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-269"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-279">when <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-268">(null <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-267">moves</span>)</span></span> $ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-271"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-278">move <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-270">A</span></span> >> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-277">liftIO <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-276">(<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-273">hFlush <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-272">stdout</span></span> >> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-275">exitWith <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-274">ExitSuccess</span></span>)</span></span></span></span>
+  <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-282">mapM_ <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-280">move</span> <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-281">moves</span></span></span></span>
+
+<span class="source-pos source-pos-type-toplevel" id="source-pos-StrategyDSL-12">dScore numLambdas mr ur = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-11">dScoreM <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-10">mr</span></span>
+  where
+    dScoreM :: MoveResult -> Int
+    <span class="source-pos source-pos-type-local" id="source-pos-StrategyDSL-9">dScoreM CollectedLambda = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-0">24</span>
+    dScoreM CompletedMine = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-1"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-3">50</span> * <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-2">numLambdas</span></span>
+    dScoreM AbortMine = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-4"><span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-6">25</span> * <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-5">numLambdas</span></span>
+    dScoreM _ = <span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-8">-<span class="source-pos source-pos-type-exp" id="source-pos-StrategyDSL-7">1</span></span></span></span>
+</div>
+<div id="source-Types" class="source">
+module Types
+  ( module Types
+  , module Types.Cell
+  , module Types.Mine
+  , module Types.MineBounds
+  , module Types.MinePosition
+  ) where
+
+import Data.Array.Storable
+import Data.Functor
+import Data.Int
+import Foreign.C.String
+import Foreign.C.Types
+import Foreign.Ptr
+import Foreign.Storable
+
+import Types.Cell
+import Types.Mine
+import Types.MineBounds
+import Types.MinePosition
+
+data Move
+  = L | R | U | D | W | A | S
+  deriving (<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-53"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-54">Eq</span></span>, <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-55"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-56">Show</span></span>, <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-57"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-58"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-59">Read</span></span></span>, <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-60"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-61"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-62"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-63"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-64">Ord</span></span></span></span></span>)
+
+moveToCChar :: Move -> CChar
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-48">moveToCChar L = <span class="source-pos source-pos-type-exp" id="source-pos-Types-35">castCharToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-34">'L'</span></span>
+moveToCChar R = <span class="source-pos source-pos-type-exp" id="source-pos-Types-37">castCharToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-36">'R'</span></span>
+moveToCChar U = <span class="source-pos source-pos-type-exp" id="source-pos-Types-39">castCharToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-38">'U'</span></span>
+moveToCChar D = <span class="source-pos source-pos-type-exp" id="source-pos-Types-41">castCharToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-40">'D'</span></span>
+moveToCChar W = <span class="source-pos source-pos-type-exp" id="source-pos-Types-43">castCharToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-42">'W'</span></span>
+moveToCChar A = <span class="source-pos source-pos-type-exp" id="source-pos-Types-45">castCharToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-44">'A'</span></span>
+moveToCChar S = <span class="source-pos source-pos-type-exp" id="source-pos-Types-47">castCharToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-46">'S'</span></span></span>
+
+newtype Strategy
+  = Strategy { nextMove :: Mine -> IO (Move, Strategy) }
+
+data MoveResult
+  = CollectedLambda
+  | CompletedMine
+  | AbortMine
+  | ValidMove
+  | InvalidMove
+  deriving (<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-65"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-66">Eq</span></span>, <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-67"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-68">Show</span></span>)
+
+readMoveResult :: CChar -> MoveResult
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-33">readMoveResult c
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Types-32">case <span class="source-pos source-pos-type-exp" id="source-pos-Types-26">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-25">c</span> :: Int8</span> of
+      0 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-27">CollectedLambda</span>
+      1 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-28">CompletedMine</span>
+      2 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-29">AbortMine</span>
+      3 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-30">ValidMove</span>
+      4 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-31">InvalidMove</span></span></span>
+
+moveResultToCChar :: MoveResult -> CChar
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-24">moveResultToCChar CollectedLambda = <span class="source-pos source-pos-type-exp" id="source-pos-Types-15">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-14">0</span></span>
+moveResultToCChar CompletedMine   = <span class="source-pos source-pos-type-exp" id="source-pos-Types-17">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-16">1</span></span>
+moveResultToCChar AbortMine       = <span class="source-pos source-pos-type-exp" id="source-pos-Types-19">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-18">2</span></span>
+moveResultToCChar ValidMove       = <span class="source-pos source-pos-type-exp" id="source-pos-Types-21">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-20">3</span></span>
+moveResultToCChar InvalidMove     = <span class="source-pos source-pos-type-exp" id="source-pos-Types-23">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-22">4</span></span></span>
+
+instance Storable MoveResult where
+  {-# INLINE sizeOf #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-99">sizeOf _
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-98">sizeOf <span class="source-pos source-pos-type-exp" id="source-pos-Types-97">(undefined :: CChar)</span></span></span>
+
+  {-# INLINE alignment #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-102">alignment _
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-101">alignment <span class="source-pos source-pos-type-exp" id="source-pos-Types-100">(undefined :: CChar)</span></span></span>
+
+  {-# INLINE peek #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-111">peek p
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-106"><span class="source-pos source-pos-type-exp" id="source-pos-Types-110">readMoveResult</span> <$> <span class="source-pos source-pos-type-exp" id="source-pos-Types-109">peekElemOff <span class="source-pos source-pos-type-exp" id="source-pos-Types-107">q</span> <span class="source-pos source-pos-type-exp" id="source-pos-Types-108">0</span></span></span>
+      where
+        <span class="source-pos source-pos-type-local" id="source-pos-Types-105">q = <span class="source-pos source-pos-type-exp" id="source-pos-Types-104">castPtr <span class="source-pos source-pos-type-exp" id="source-pos-Types-103">p</span></span></span></span>
+
+  {-# INLINE poke #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-120">poke p x
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-119">pokeElemOff <span class="source-pos source-pos-type-exp" id="source-pos-Types-115">q</span> <span class="source-pos source-pos-type-exp" id="source-pos-Types-116">0</span> <span class="source-pos source-pos-type-exp" id="source-pos-Types-118">(moveResultToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-117">x</span>)</span></span>
+      where
+        <span class="source-pos source-pos-type-local" id="source-pos-Types-114">q = <span class="source-pos source-pos-type-exp" id="source-pos-Types-113">castPtr <span class="source-pos source-pos-type-exp" id="source-pos-Types-112">p</span></span></span></span>
+
+data Result
+  = Continue | End GameStatus
+  deriving (<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-69"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-70">Eq</span></span>, <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-71"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-72">Show</span></span>)
+
+readResult :: CChar -> Result
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-13">readResult c
+  = <span class="source-pos source-pos-type-exp" id="source-pos-Types-12">case <span class="source-pos source-pos-type-exp" id="source-pos-Types-6">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-5">c</span> :: Int8</span> of
+      0 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-7">Continue</span>
+      1 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-9">End <span class="source-pos source-pos-type-exp" id="source-pos-Types-8">Lose</span></span>
+      2 -> <span class="source-pos source-pos-type-exp" id="source-pos-Types-11">End <span class="source-pos source-pos-type-exp" id="source-pos-Types-10">Lose</span></span></span></span>
+
+resultToCChar :: Result -> CChar
+<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-4">resultToCChar Continue  = <span class="source-pos source-pos-type-exp" id="source-pos-Types-1">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-0">0</span></span>
+resultToCChar (End _)   = <span class="source-pos source-pos-type-exp" id="source-pos-Types-3">fromIntegral <span class="source-pos source-pos-type-exp" id="source-pos-Types-2">1</span></span></span>
+
+instance Storable Result where
+  {-# INLINE sizeOf #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-75">sizeOf _
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-74">sizeOf <span class="source-pos source-pos-type-exp" id="source-pos-Types-73">(undefined :: CChar)</span></span></span>
+
+  {-# INLINE alignment #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-78">alignment _
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-77">alignment <span class="source-pos source-pos-type-exp" id="source-pos-Types-76">(undefined :: CChar)</span></span></span>
+
+  {-# INLINE peek #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-87">peek p
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-82"><span class="source-pos source-pos-type-exp" id="source-pos-Types-86">readResult</span> <$> <span class="source-pos source-pos-type-exp" id="source-pos-Types-85">peekElemOff <span class="source-pos source-pos-type-exp" id="source-pos-Types-83">q</span> <span class="source-pos source-pos-type-exp" id="source-pos-Types-84">0</span></span></span>
+      where
+        <span class="source-pos source-pos-type-local" id="source-pos-Types-81">q = <span class="source-pos source-pos-type-exp" id="source-pos-Types-80">castPtr <span class="source-pos source-pos-type-exp" id="source-pos-Types-79">p</span></span></span></span>
+
+  {-# INLINE poke #-}
+  <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-96">poke p x
+    = <span class="source-pos source-pos-type-exp" id="source-pos-Types-95">pokeElemOff <span class="source-pos source-pos-type-exp" id="source-pos-Types-91">q</span> <span class="source-pos source-pos-type-exp" id="source-pos-Types-92">0</span> <span class="source-pos source-pos-type-exp" id="source-pos-Types-94">(resultToCChar <span class="source-pos source-pos-type-exp" id="source-pos-Types-93">x</span>)</span></span>
+      where
+        <span class="source-pos source-pos-type-local" id="source-pos-Types-90">q = <span class="source-pos source-pos-type-exp" id="source-pos-Types-89">castPtr <span class="source-pos source-pos-type-exp" id="source-pos-Types-88">p</span></span></span></span>
+
+-- TODO: Lose should be Crushed | Drowned
+data GameStatus
+  = Win | Lose | Abort
+  deriving (<span class="source-pos source-pos-type-toplevel" id="source-pos-Types-49"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-50">Eq</span></span>, <span class="source-pos source-pos-type-toplevel" id="source-pos-Types-51"><span class="source-pos source-pos-type-toplevel" id="source-pos-Types-52">Show</span></span>)
+</div>
+     <script src="jquery-1.8.3.js"></script>
+     <script src="Hack.js"></script>
+     <script src="code.js"></script>
+   </body>
+ </html>
+
