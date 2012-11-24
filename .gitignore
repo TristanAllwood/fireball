@@ -8,4 +8,8 @@ Fireball
 FireballRender
 *.hfb
 *.html
-Main.js
+samples/*.js
+samples/*.html
+samples/Loop
+samples/QuickSort
+outputs

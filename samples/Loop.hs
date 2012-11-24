@@ -1,4 +1,4 @@
-module Main where
+module Loop where
 
 main :: IO ()
 main = print . sum . map foo $ [1, 2, 3, 4, 5]

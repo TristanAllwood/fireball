@@ -92,9 +92,9 @@ parseTixs hdl = runContT (callCC (go [])) (return . reverse)
       liftIO $ putStrLn modName
 
       let readAsIntList = read . ("[" ++) . (++ "]")
-      oldValue <- readAsIntList <$> searchTo (=~ "Old value = \\{(.*)\\}")
+      oldValue <- readAsIntList <$> searchTo (=~ "\\{(.*)\\}")
                                              (break result)
-      newValue <- readAsIntList <$> searchTo (=~ "New value = \\{(.*)\\}")
+      newValue <- readAsIntList <$> searchTo (=~ "\\{(.*)\\}")
                                              (break result)
 
       go ((modName, zip oldValue newValue):result) break

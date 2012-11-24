@@ -1,4 +1,4 @@
-all:	Fireball FireballRender Main
+all:	Fireball FireballRender
 
 FireballRender: FireballRender.hs
 	ghc -threaded --make -main-is FireballRender FireballRender.hs
@@ -7,14 +7,9 @@ FireballRender: FireballRender.hs
 Fireball: Fireball.hs
 	ghc -threaded --make -main-is Fireball Fireball.hs
 
-Main: Main.hs
-	ghc -O2 -fhpc --make Main.hs
-
-run: Main
-	./gen.sh
-
 clean:
 	rm -rf .hpc *.tix *.hi *.o *.hfb *.html
 	rm -f Fireball FireballRender
+	rm -rf outputs
 
 .phony: clean all
