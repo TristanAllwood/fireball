@@ -12,3 +12,41 @@ h1 {
   margin:0px;
 }
 
+#source-tabs {
+  margin-bottom: 2px;
+  border-bottom: 1px solid black;
+  height:25px;
+}
+
+.source-tab {
+  background: #FFAAAA;
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+  margin-right: 5px;
+  margin-left: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+  float:left;
+  height:25px;
+  border-top: 1px solid black;
+}
+
+.source {
+  white-space: pre;
+  font-family: monospace;
+  border: 1px solid black;
+  margin: 5px;
+  background: #EEEEEE;
+}
+
+.source-pos {
+  font-weight: bold;
+}
+
+.source-pos-active.source-pos-type-exp {
+  background: #FFAAAA;
+}
+
+.source-pos-active.source-pos-type-toplevel {
+  font-style:italic;
+}
