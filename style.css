@@ -31,9 +31,16 @@ h1 {
   border-top: 1px solid black;
 }
 
+.source-tab-active {
+  background: #FFFFAA;
+  font-style:oblique;
+}
+
+
 .source {
   white-space: pre;
   font-family: monospace;
+  font-size:small;
   border: 1px solid black;
   margin: 5px;
   background: #EEEEEE;
@@ -49,4 +56,33 @@ h1 {
 
 .source-pos-active.source-pos-type-toplevel {
   background: #FFEEEE;
+}
+
+#controls {
+  margin-right: 5px;
+  margin-bottom: 0px;
+  height: 25px;
+  float:right;
+  background: #DDFFDD;
+  border-left:1px solid green;
+  border-right:1px solid green;
+  border-top:1px solid green;
+}
+
+#progress {
+  float: left;
+  width: 150px;
+  height: 20px;
+  border: 1px solid blue;
+  margin: 2px;
+  background: #DDDDFF;
+}
+
+#progress-marker {
+  height: 20px;
+  border-left: 1px solid blue;
+  border-right: 1px solid blue;
+  background: green;
+  width:  1px;
+  float:  left;
 }
